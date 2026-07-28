@@ -20,6 +20,19 @@ class AIHatasi(Exception):
     pass
 
 
+# Calisan model bulununca oturum boyunca onu kullaniriz
+_aktif_model: str | None = None
+
+
+def _model_adaylari() -> list:
+    """Denenecek modeller: once secili olan, sonra yedekler."""
+    adaylar = [config.GEMINI_MODEL]
+    for m in getattr(config, "GEMINI_YEDEK_MODELLER", []):
+        if m not in adaylar:
+            adaylar.append(m)
+    return adaylar
+
+
 # --------------------------------------------------------------- JSON temizle
 def _json_ayikla(metin: str) -> Dict[str, Any]:
     """Model bazen ```json ... ``` icinde veya onune yazi ekleyerek cevap verir."""
@@ -71,7 +84,14 @@ def sor(
 
     import requests  # burada import ediyoruz ki MOCK modda gerekmesin
 
-    url = config.GEMINI_URL.format(model=config.GEMINI_MODEL)
+    global _aktif_model
+
+    adaylar = _model_adaylari()
+    if _aktif_model and _aktif_model in adaylar:
+        adaylar.remove(_aktif_model)
+        adaylar.insert(0, _aktif_model)
+    model_sirasi = 0
+
     basliklar = {
         "x-goog-api-key": config.GEMINI_API_KEY,
         "Content-Type": "application/json",
@@ -97,11 +117,23 @@ def sor(
     son_hata = None
     for deneme in range(1, max_deneme + 1):
         try:
+            model = adaylar[model_sirasi]
+            url = config.GEMINI_URL.format(model=model)
             cevap = requests.post(url, json=govde, headers=basliklar, timeout=120)
 
             if cevap.status_code == 429:
-                # 429'un sebebini mutlaka goster: kota mi, bolge mi, model mi?
                 detay = cevap.text[:600]
+
+                # "limit: 0" -> bu modelin ucretsiz kotasi hic yok.
+                # Beklemek ise yaramaz, baska modele gecmek gerekir.
+                if "limit: 0" in detay and model_sirasi + 1 < len(adaylar):
+                    model_sirasi += 1
+                    logger.uyari(
+                        f"'{model}' modelinin ucretsiz kotasi yok. "
+                        f"'{adaylar[model_sirasi]}' deneniyor..."
+                    )
+                    continue
+
                 son_hata = AIHatasi(f"HTTP 429 (kota/limit). Sunucu cevabi:\n{detay}")
                 logger.uyari(f"Kota limiti (429). Sunucu diyor ki:\n{detay}")
 
@@ -137,6 +169,7 @@ def sor(
                     )
                 raise AIHatasi(f"Model bos metin dondu (sebep: {sebep}).")
 
+            _aktif_model = model          # bu model calisti, aklimizda tutalim
             return _json_ayikla(metin)
 
         except Exception as e:          # noqa: BLE001

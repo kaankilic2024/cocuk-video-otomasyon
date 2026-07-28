@@ -27,7 +27,17 @@ FIKIR_GECMISI = DATA_DIR / "fikir_gecmisi.json"
 
 # ---------------------------------------------------------------- API
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+# Secili modelin ucretsiz kotasi kapanirsa sirayla bunlar denenir.
+# (Google zaman zaman eski modellerin ucretsiz katmanini kaldiriyor.)
+GEMINI_YEDEK_MODELLER = [
+    "gemini-3.6-flash",
+    "gemini-flash-latest",
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+]
 
 # Yeni modeller cevap yazmadan once "dusunuyor"; bu da token sinirindan
 # dusuyor. Butceyi sinirlamak cevaba yer birakir ve maliyeti azaltir.

@@ -76,6 +76,7 @@ jobs:
       - name: Videoları üret
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.6-flash' }}
           SES_TONU: ${{ vars.SES_TONU || 'canli' }}
           SFX_TIPI: ${{ vars.SFX_TIPI || 'chime' }}
           YOUTUBE_GIZLILIK: ${{ vars.YOUTUBE_GIZLILIK || 'public' }}
