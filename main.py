@@ -367,6 +367,10 @@ def main() -> int:
 
     if args.sesler:
         try:
+            if config.SES_MOTORU == "gemini":
+                from utils import gemini_ses
+                gemini_ses.sesleri_listele()
+                return 0
             step4_ses.turkce_sesleri_listele()
             return 0
         except Exception as e:                        # noqa: BLE001

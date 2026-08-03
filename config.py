@@ -127,6 +127,38 @@ GORSEL_ZAMAN_ASIMI = 110    # tek gorsel icin en fazla bekleme (saniye)
 SEED_MODU = os.getenv("SEED_MODU", "sahne_basi")
 
 # ---------------------------------------------------------------- SESLENDIRME
+# Iki motor secenegi:
+#   "gemini" -> Gemini TTS. Daha dogal tonlama, farkli ses karakterleri.
+#               Kelime zamanlari tahmin edilir (karaoke icin yeterli hassasiyette).
+#   "edge"   -> edge-tts (Emel / Ahmet). Kelime zamanlarini tam verir.
+# Gemini basarisiz olursa otomatik olarak edge-tts'e dusulur.
+SES_MOTORU = os.getenv("SES_MOTORU", "gemini")
+
+GEMINI_SES_MODELI = os.getenv("GEMINI_SES_MODELI", "gemini-2.5-flash-preview-tts")
+GEMINI_SES_YEDEK_MODELLER = ["gemini-3.1-flash-tts-preview"]
+
+GEMINI_SESI = os.getenv("GEMINI_SESI", "Puck")
+
+GEMINI_SES_SECENEKLERI = [
+    ("Puck", "neseli, canli"),
+    ("Leda", "genc, parlak"),
+    ("Aoede", "havadar, yumusak"),
+    ("Kore", "kararli, net"),
+    ("Charon", "derin, bilgilendirici"),
+    ("Fenrir", "heyecanli"),
+]
+
+# Gemini'ye metinden once verilen yonerge: nasil okumasi gerektigini soyler.
+GEMINI_SES_YONERGE = (
+    "Asagidaki metni Turkce olarak, kucuk cocuklara masal anlatir gibi "
+    "neseli, sicak ve enerjik bir tonla oku. Kelimeleri net soyle, "
+    "acele etme. Sadece metni oku, baska hicbir sey soyleme:"
+)
+
+# Gemini'nin dakikalik istek limitine takilmamak icin sahneler arasi bekleme.
+SES_ARASI_BEKLEME = float(os.getenv("SES_ARASI_BEKLEME", "4"))
+
+
 # edge-tts (Microsoft nöral sesler) - ucretsiz, anahtar gerektirmez.
 # Turkce'de iki nöral ses var: Emel (kadin), Ahmet (erkek).
 # Hiz ve perde ayariyla bunlardan farkli karakterler cikarabiliyoruz.
@@ -224,21 +256,21 @@ GECICI_DOSYALARI_SIL = True
 
 # Arka plan muzigi: assets/music klasorune telifsiz mp3 koyarsan otomatik kullanilir
 MUZIK_KULLAN = True
-MUZIK_SESI = 0.1           # 0.05-0.12 arasi uygundur; konusmayi bastirmamali
+MUZIK_SESI = 0.07           # 0.05-0.12 arasi uygundur; konusmayi bastirmamali
 
 # YouTube sesi -14 LUFS'a normalize eder. Kendi videomuz bunun altinda kalirsa
 # diger videolardan kisik duyulur.
 # Sahne gecislerinde calan yumusak "ciiink" sesi. Dosya indirmene gerek yok,
 # kod kendisi uretiyor. Video daha canli hissettirir.
 SFX_KULLAN = True
-SFX_SESI = 0.15            # 0.15-0.6 arasi; konusmayi bastirmamali
+SFX_SESI = 0.35            # 0.15-0.6 arasi; konusmayi bastirmamali
 SFX_TEPE_GENLIK = 0.5      # uretilen efektin genligi (0-1)
 
 # Efekt secenekleri: chime, pop, whoosh, arp, sparkle, marimba
 # Hepsini dinlemek icin:  python main.py --efektler
 # Kendi sesini kullanmak istersen assets/sfx/gecis.wav olarak kaydet;
 # dosya varsa kod uretmez, seninkini kullanir.
-SFX_TIPI = os.getenv("SFX_TIPI", "whoosh")
+SFX_TIPI = os.getenv("SFX_TIPI", "chime")
 
 SES_NORMALIZE = True
 HEDEF_SES_SEVIYESI = -15    # LUFS

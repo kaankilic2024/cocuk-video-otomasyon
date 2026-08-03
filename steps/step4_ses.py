@@ -83,6 +83,32 @@ async def _seslendir_tek(metin: str, hedef: Path) -> List[Dict[str, Any]]:
     return kelimeler
 
 
+def _uret(metin: str, hedef: Path) -> List[Dict[str, Any]]:
+    """Secili motorla seslendirir ve kelime zamanlarini dondurur.
+
+    Gemini basarisiz olursa edge-tts'e duser; uretim durmaz.
+    Hicbir motor kelime zamani veremezse zamanlar tahmin edilir; boylece
+    karaoke altyazi hicbir sahnede bos kalmaz.
+    """
+    from utils import gemini_ses
+
+    if config.SES_MOTORU == "gemini":
+        ok, bilgi = gemini_ses.seslendir_tek(metin, hedef)
+        if ok:
+            return gemini_ses.kelime_zamanlari(metin, _sure_olc(hedef))
+        logger.uyari(f"  Gemini ses basarisiz ({bilgi}). edge-tts deneniyor...")
+
+    # edge-tts (varsayilan veya yedek)
+    kelimeler = _calistir(_seslendir_tek(metin, hedef))
+
+    # edge-tts bazen WordBoundary olayi gondermiyor; o zaman tahmin ediyoruz
+    if not kelimeler:
+        logger.bilgi("    Kelime zamani gelmedi, tahmin ediliyor.")
+        kelimeler = gemini_ses.kelime_zamanlari(metin, _sure_olc(hedef))
+
+    return kelimeler
+
+
 def _calistir(coro):
     """Windows'ta asyncio'yu guvenli calistirir."""
     if sys.platform == "win32":
@@ -265,10 +291,16 @@ def seslendir(proje_dir: Path, senaryo: Dict[str, Any]) -> List[Path]:
     ses_dir.mkdir(exist_ok=True)
 
     sahneler = senaryo["sahneler"]
-    logger.bilgi(
-        f"{len(sahneler)} sahne seslendirilecek "
-        f"(ton: {config.SES_TONU}, hiz: {config.SES_HIZI})"
-    )
+    if config.SES_MOTORU == "gemini":
+        logger.bilgi(
+            f"{len(sahneler)} sahne seslendirilecek "
+            f"(motor: Gemini, ses: {config.GEMINI_SESI})"
+        )
+    else:
+        logger.bilgi(
+            f"{len(sahneler)} sahne seslendirilecek "
+            f"(motor: edge-tts, ton: {config.SES_TONU}, hiz: {config.SES_HIZI})"
+        )
 
     yollar, basarisiz = [], []
 
@@ -287,7 +319,7 @@ def seslendir(proje_dir: Path, senaryo: Dict[str, Any]) -> List[Path]:
 
         for deneme in range(1, 4):
             try:
-                kelimeler = _calistir(_seslendir_tek(sahne["anlatim"], hedef))
+                kelimeler = _uret(sahne["anlatim"], hedef)
                 _sessizligi_kirp(hedef, kelimeler)
 
                 sure = _sure_olc(hedef)
@@ -299,6 +331,9 @@ def seslendir(proje_dir: Path, senaryo: Dict[str, Any]) -> List[Path]:
                     f"  Sahne {no:2d}: hazir ({sure:.1f} sn, "
                     f"{len(kelimeler)} kelime)"
                 )
+                # Gemini'nin dakikalik istek limitine takilmamak icin ara ver
+                if config.SES_MOTORU == "gemini" and config.SES_ARASI_BEKLEME:
+                    time.sleep(config.SES_ARASI_BEKLEME)
                 break
             except Exception as e:                     # noqa: BLE001
                 if deneme < 3:
