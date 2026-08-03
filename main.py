@@ -432,7 +432,18 @@ def main() -> int:
         for tip, hata in basarisiz:
             print(f"   → {tip}: {hata}")
 
-    return 0 if not basarisiz else 1
+    # Kismi basari hata sayilmaz: en az bir video uretildiyse islem basarilidir.
+    # Aksi halde 4 videodan 3'u yuklenmisken GitHub kirmizi gosterip e-posta
+    # atiyor ve gercek hatalari fark etmek zorlasiyor.
+    if basarili:
+        if basarisiz:
+            logger.uyari(
+                f"{len(basarisiz)} video uretilemedi ama {len(basarili)} tanesi "
+                "hazir. Islem basarili sayiliyor."
+            )
+        return 0
+
+    return 1
 
 
 if __name__ == "__main__":
